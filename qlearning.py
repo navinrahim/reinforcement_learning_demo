@@ -7,9 +7,9 @@ import time
 
 LEARNING_RATE = 0.1  # can be modified, can be a value between 0 and 1
 DISCOUNT = 0.95  # How important are future rewards over current rewards
-EPISODES = 25000
+EPISODES = 2000
 
-DISPLAY_EPISODE = 2000  # Display metrics after how many episodes
+DISPLAY_EPISODE = 500  # Display metrics after how many episodes
 
 epsilon = 0.5 # amount of randomness/exploration, the higher epsilon -> more randomness
 START_EPSILON_DECAYING_EPISODE = 1
@@ -31,6 +31,10 @@ discrete_os_win_size = (env.observation_space.high -
 q_table = np.random.uniform(
     low=-2, high=0, size=(DISCRETE_OS_SIZE + [env.action_space.n]))
 
+# analysis variables
+episode_rewards = []
+aggregate_episode_rewards = {'ep':[], 'avg':[], 'min':[], 'max':[]}
+
 # Convert state from env to bins. The output can be used to query the qtable
 # Eg: q_table[get_discrete_state(env.reset())]
 
@@ -44,6 +48,7 @@ def get_discrete_state(state):
 
 # Run for multiple episodes(iterations)
 for episode in range(EPISODES):
+    episode_reward = 0
     discrete_state = get_discrete_state(env.reset())  # get initial state
 
     if episode % DISPLAY_EPISODE == 0:
@@ -61,6 +66,7 @@ for episode in range(EPISODES):
         else:
             action = np.random.randint(0, env.action_space.n)
         new_state, reward, done, _ = env.step(action)
+        episode_reward += reward
         new_discrete_state = get_discrete_state(new_state)
         if render:
             env.render()
@@ -82,5 +88,7 @@ for episode in range(EPISODES):
 
     if START_EPSILON_DECAYING_EPISODE <= episode <= END_EPSILON_DECAYING_EPISODE:
         epsilon -= epsilon_decay_factor
+
+    episode_rewards.append(episode_reward)
     
 env.close()
