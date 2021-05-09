@@ -4,6 +4,7 @@ https://pythonprogramming.net/q-learning-reinforcement-learning-python-tutorial/
 import gym
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 LEARNING_RATE = 0.1  # can be modified, can be a value between 0 and 1
 DISCOUNT = 0.95  # How important are future rewards over current rewards
@@ -11,10 +12,11 @@ EPISODES = 2000
 
 DISPLAY_EPISODE = 500  # Display metrics after how many episodes
 
-epsilon = 0.5 # amount of randomness/exploration, the higher epsilon -> more randomness
+epsilon = 0.5  # amount of randomness/exploration, the higher epsilon -> more randomness
 START_EPSILON_DECAYING_EPISODE = 1
 END_EPSILON_DECAYING_EPISODE = EPISODES // 2
-epsilon_decay_factor = epsilon / (END_EPSILON_DECAYING_EPISODE - START_EPSILON_DECAYING_EPISODE)
+epsilon_decay_factor = epsilon / \
+    (END_EPSILON_DECAYING_EPISODE - START_EPSILON_DECAYING_EPISODE)
 
 env = gym.make("MountainCar-v0")
 # env.reset() # reset the env and return the initial state
@@ -31,9 +33,9 @@ discrete_os_win_size = (env.observation_space.high -
 q_table = np.random.uniform(
     low=-2, high=0, size=(DISCRETE_OS_SIZE + [env.action_space.n]))
 
-# analysis variables
+# analysis variables, statistics
 episode_rewards = []
-aggregate_episode_rewards = {'ep':[], 'avg':[], 'min':[], 'max':[]}
+aggregate_episode_rewards = {'ep': [], 'avg': [], 'min': [], 'max': []}
 
 # Convert state from env to bins. The output can be used to query the qtable
 # Eg: q_table[get_discrete_state(env.reset())]
@@ -42,8 +44,6 @@ aggregate_episode_rewards = {'ep':[], 'avg':[], 'min':[], 'max':[]}
 def get_discrete_state(state):
     discrete_state = (state - env.observation_space.low)/discrete_os_win_size
     return tuple(discrete_state.astype(np.int))
-
-
 
 
 # Run for multiple episodes(iterations)
@@ -90,5 +90,29 @@ for episode in range(EPISODES):
         epsilon -= epsilon_decay_factor
 
     episode_rewards.append(episode_reward)
-    
+
+    if episode % DISPLAY_EPISODE == 0:  # for every display episode
+        # find average for the last display episode rewards
+        average_reward = sum(
+            episode_rewards[-DISPLAY_EPISODE:])/len(episode_rewards[-DISPLAY_EPISODE:])
+
+        # update analysis variables
+        aggregate_episode_rewards['ep'].append(episode)
+        aggregate_episode_rewards['avg'].append(average_reward)
+        aggregate_episode_rewards['min'].append(min(episode_rewards[-DISPLAY_EPISODE:]))
+        aggregate_episode_rewards['max'].append(max(episode_rewards[-DISPLAY_EPISODE:]))
+
+        # print the statistics
+        print(f"episode: {episode} average: {average_reward} min: {min(episode_rewards[-DISPLAY_EPISODE:])} max: {max(episode_rewards[-DISPLAY_EPISODE:])}")
+
+        # save the q-table
+        np.save(f"qtables/{episode}-qtable.npy", q_table)
+
 env.close()
+
+# graph the statistics
+plt.plot(aggregate_episode_rewards['ep'], aggregate_episode_rewards['avg'], label="avg")
+plt.plot(aggregate_episode_rewards['ep'], aggregate_episode_rewards['min'], label="min")
+plt.plot(aggregate_episode_rewards['ep'], aggregate_episode_rewards['max'], label="max")  
+plt.legend(loc=4) # show the legend in the right bottom
+plt.show()
